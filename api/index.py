@@ -1,6 +1,7 @@
 import io
 import json
 import os
+from pathlib import Path
 
 from docx import Document
 from flask import Flask, jsonify, request, send_from_directory
@@ -64,7 +65,7 @@ def too_large(_error):
 
 @app.get("/")
 def home():
-    return send_from_directory("../public", "index.html")
+    return send_from_directory(Path(__file__).resolve().parent.parent / "public", "index.html")
 
 
 @app.get("/api/health")
