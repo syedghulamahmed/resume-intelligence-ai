@@ -65,7 +65,7 @@ def too_large(_error):
 
 @app.get("/")
 def home():
-    return send_from_directory(Path(__file__).resolve().parent.parent / "public", "index.html")
+    return send_from_directory(Path(__file__).resolve().parent, "index.html")
 
 
 @app.get("/api/health")
