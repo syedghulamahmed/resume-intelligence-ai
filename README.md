@@ -51,3 +51,9 @@ Open http://127.0.0.1:5000.
 - The evaluator must not be used as a hiring decision or a prediction of employability.
 - It is designed to avoid inventing qualifications or metrics; users should verify all suggested rewrites.
 - For public production use, add rate limiting, malware scanning, abuse monitoring, and an appropriate privacy notice.
+
+## Live demo
+
+Production app: https://resume-intelligence-ai-eta.vercel.app
+
+The interface is deployed on Vercel. To enable live AI analysis, configure a valid `OPENAI_API_KEY` in the Vercel Production environment and redeploy. The application intentionally returns HTTP 503 when this server-side secret is missing; never place the key in frontend code or commit it to Git.
