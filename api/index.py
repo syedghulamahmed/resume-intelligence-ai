@@ -2,7 +2,6 @@ import io
 import json
 import os
 import re
-import json
 import urllib.request
 import urllib.error
 import zipfile
@@ -59,7 +58,7 @@ def extract_text(upload):
 def anonymize_resume(text):
     """Remove common direct identifiers before text is sent to the external model."""
     cleaned = []
-    name_pattern = re.compile(r"^[A-Z][a-z'’-]+(?:\\s+[A-Z][a-z'’-]+){1,2}$")
+    name_pattern = re.compile(r"^[A-Z][a-z'’-]+(?:\s+[A-Z][a-z'’-]+){1,2}$")
     section_titles = {"summary", "profile", "experience", "education", "skills", "projects", "certifications"}
     for index, raw_line in enumerate(text.splitlines()):
         line = raw_line.strip()
@@ -68,15 +67,15 @@ def anonymize_resume(text):
             continue
         if index < 5 and line.lower() not in section_titles and name_pattern.fullmatch(line):
             continue
-        line = re.sub(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}", "[REDACTED EMAIL]", line, flags=re.I)
-        line = re.sub(r"https?://\\S+|www\\.\\S+", "[REDACTED LINK]", line, flags=re.I)
-        line = re.sub(r"(?i)\\b(?:linkedin|github)\\.com/\\S+", "[REDACTED LINK]", line)
-        line = re.sub(r"(?i)\\b(?:full name|name|home address|address|date of birth|dob|cnic|passport|national id|personal email)\\s*[:=-].*$", "[REDACTED PERSONAL DETAIL]", line)
-        line = re.sub(r"(?<!\\w)\\d{5}-\\d{7}-\\d(?!\\w)", "[REDACTED ID]", line)
-        line = re.sub(r"(?<!\\w)\\+?\\d[\\d .()/-]{7,}\\d(?!\\w)",
+        line = re.sub(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", "[REDACTED EMAIL]", line, flags=re.I)
+        line = re.sub(r"https?://\S+|www\.\S+", "[REDACTED LINK]", line, flags=re.I)
+        line = re.sub(r"(?i)\b(?:linkedin|github)\.com/\S+", "[REDACTED LINK]", line)
+        line = re.sub(r"(?i)\b(?:full name|name|home address|address|date of birth|dob|cnic|passport|national id|personal email)\s*[:=-].*$", "[REDACTED PERSONAL DETAIL]", line)
+        line = re.sub(r"(?<!\w)\d{5}-\d{7}-\d(?!\w)", "[REDACTED ID]", line)
+        line = re.sub(r"(?<!\w)\+?\d[\d .()/-]{7,}\d(?!\w)",
                       lambda m: "[REDACTED PHONE]" if sum(ch.isdigit() for ch in m.group(0)) >= 9 else m.group(0), line)
         cleaned.append(line)
-    return "\\n".join(cleaned).strip()[:MAX_EXTRACTED_CHARS]
+    return "\n".join(cleaned).strip()[:MAX_EXTRACTED_CHARS]
 
 
 def call_vireonix(messages, timeout=35):
@@ -87,18 +86,20 @@ def call_vireonix(messages, timeout=35):
         "response_format": {"type": "json_object"},
         "messages": messages,
     }
-    request = urllib.request.Request(
+    upstream = urllib.request.Request(
         "https://vireonix.ai/v1/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(request, timeout=timeout) as response:
+    with urllib.request.urlopen(upstream, timeout=timeout) as response:
         result = json.loads(response.read().decode("utf-8"))
     content = result.get("choices", [{}])[0].get("message", {}).get("content")
     if not isinstance(content, str) or not content.strip():
         raise ValueError("Empty AI response")
-    return json.loads(content.strip().removeprefix("```json").removesuffix("```").strip())
+    fence = chr(96) * 3
+    content = content.strip().replace(fence + "json", "").replace(fence, "").strip()
+    return json.loads(content)
 
 
 SCHEMA = {
