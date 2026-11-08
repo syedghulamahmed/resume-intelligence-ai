@@ -108,12 +108,12 @@ def analyze():
         return jsonify(error="The uploaded document could not be parsed. Try a valid text-based PDF or DOCX."), 400
 
     api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return jsonify(error="AI service is not configured. Please contact the project maintainer."), 503
-
     role = (request.form.get("target_role") or "General entry-level role").strip()[:100]
     level = (request.form.get("experience_level") or "Student / Entry-level").strip()[:60]
     focus = (request.form.get("focus") or "Overall resume quality").strip()[:180]
+
+    if not api_key:
+        return jsonify(analysis=build_baseline_review(resume, role, level, focus), source="built-in")
     prompt = f"""Act as a rigorous, fair resume reviewer. Evaluate only evidence present. Never infer protected traits or fabricate experience, credentials, dates, or metrics. Clearly label missing evidence. Suggest honest bullet rewrites with placeholders if metrics are absent. Do not treat score as a hiring prediction.
 Target role: {role}
 Experience level: {level}
@@ -136,10 +136,15 @@ Return a balanced 0–100 score for clarity, structure, evidence/impact, skills,
         score = analysis.get("overall_score")
         if not isinstance(score, int) or not 0 <= score <= 100:
             raise ValueError("Invalid score returned by model")
-        return jsonify(analysis=analysis)
-    except Exception:
-        app.logger.exception("Resume analysis failed")
-        return jsonify(error="AI analysis failed or returned invalid feedback. Please try again shortly."), 502
+        return jsonify(analysis=analysis, source="openai")
+    except Exception as exc:
+        # Do not expose provider errors, request payloads, or credentials to the browser.
+        app.logger.warning("OpenAI resume analysis failed (%s); using transparent baseline review.", type(exc).__name__)
+        return jsonify(
+            analysis=build_baseline_review(resume, role, level, focus),
+            source="built-in",
+            notice="AI analysis is unavailable because the provider rejected the configured credentials or failed. This is a rules-based baseline review, not AI feedback.",
+        )
 
 
 if __name__ == "__main__":
