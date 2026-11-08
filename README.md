@@ -1,59 +1,38 @@
 # Resume Intelligence AI
 
-An AI-powered resume evaluator built for **Internee.pk Generative AI Internship — Assignment #2**.
+A resume-review application for PDF and DOCX files. It evaluates the resume against a target role and provides evidence-based strengths, prioritized improvements, skills assessment, ATS-structure feedback, and suggested bullet rewrites.
 
 ## Features
 - Upload PDF or DOCX resumes (8 MB maximum).
-- Extract resume text with pypdf and python-docx.
-- Evaluate against a target role and experience level.
-- Generate a 0–100 quality score, strengths, prioritized improvements, skill evidence, ATS feedback, an action plan, and honest bullet rewrites.
-- Keep the OpenAI API key on the server; resume contents are processed in memory and are not saved by this app.
+- Extract text with pypdf and python-docx.
+- Remove common direct identifiers (name-like header, email, phone, ID number, address labels, and links) before the AI request.
+- Generate a role-aware review, score, strengths, improvement priorities, and an action plan.
+- Clearly labelled rules-based fallback when live AI is unavailable.
 
-## Tech stack
-Python, Flask, OpenAI Responses API, pypdf, python-docx, HTML, CSS, JavaScript, and Vercel.
+## Stack
+Python, Flask, Vireonix Chat Completions API, pypdf, python-docx, HTML, CSS, JavaScript, Vercel.
 
-## Local setup
+## AI provider
+The server sends the redacted resume text to Vireonix's OpenAI-compatible `/v1/chat/completions` endpoint with model `auto`. No API key or payment card is required. The public API has per-IP hourly limits and no SLA; temporary 429 or service errors trigger a transparent local baseline review.
+
+## Run locally
 ```bash
 python -m venv .venv
-# Windows: .venv\Scripts\activate
+# Windows: .venv\\Scripts\\activate
 # macOS/Linux:
 source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-Set your API key as an environment variable (never commit it):
-```bash
-# macOS/Linux
-export OPENAI_API_KEY="your-key"
-# PowerShell
-$env:OPENAI_API_KEY="your-key"
-```
-
-Run:
-```bash
 python api/index.py
 ```
 Open http://127.0.0.1:5000.
 
-## Vercel deployment
-1. Import this repository into Vercel.
-2. Set `OPENAI_API_KEY` in Project Settings → Environment Variables for Production (and Preview if needed).
-3. Redeploy after changing environment variables.
-4. Optional: set `OPENAI_MODEL`; default is `gpt-4.1-mini`.
+No provider API key is required.
 
 ## API
-- `GET /api/health` — service health check.
-- `POST /api/analyze` — multipart form with `resume` (PDF/DOCX), optional `target_role`, `experience_level`, and `focus`.
+- `GET /api/health` — service/provider health.
+- `POST /api/analyze` — multipart fields: `resume` (PDF/DOCX), optional `target_role`, `experience_level`, and `focus`.
 
-## Limitations and responsible use
-- Scanned/image-only PDFs require OCR and are not supported yet.
-- AI feedback can be incomplete or incorrect; verify every recommendation.
-- The evaluator must not be used as a hiring decision or a prediction of employability.
-- It is designed to avoid inventing qualifications or metrics; users should verify all suggested rewrites.
-- For public production use, add rate limiting, malware scanning, abuse monitoring, and an appropriate privacy notice.
+## Privacy and responsible use
+Before upload/analysis, the interface requires explicit consent and explains that prompts, outputs, and related chat traces sent to Vireonix may be retained and used for training and product improvement. It also links to https://vireonix.ai/terms. Common direct identifiers are redacted automatically, but redaction cannot guarantee removal of every identifying or sensitive detail. Users should not upload confidential, sensitive, or unauthorized information. The app processes the uploaded file in memory and does not intentionally persist it. AI scores are qualitative guidance, not ATS certification, hiring predictions, or employment decisions. Verify suggested edits and never accept fabricated metrics or credentials.
 
-## Live demo
-
-Production app: https://resume-intelligence-ai-eta.vercel.app
-
-The interface is deployed on Vercel. To enable live AI analysis, configure a valid `OPENAI_API_KEY` in the Vercel Production environment and redeploy. The application intentionally returns HTTP 503 when this server-side secret is missing; never place the key in frontend code or commit it to Git.
+MIT License.
