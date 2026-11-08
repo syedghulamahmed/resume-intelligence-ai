@@ -174,7 +174,7 @@ def home():
 
 @app.get("/api/health")
 def health():
-    return jsonify(status="ok", service="resume-intelligence-ai", ai_configured=bool(os.getenv("AI_GATEWAY_API_KEY") or os.getenv("VERCEL_OIDC_TOKEN")))
+    return jsonify(status="ok", service="resume-intelligence-ai", ai_configured=bool(os.getenv("AI_GATEWAY_API_KEY") or request.headers.get("x-vercel-oidc-token")))
 
 
 @app.post("/api/analyze")
@@ -190,7 +190,7 @@ def analyze():
         app.logger.exception("Resume parsing failed")
         return jsonify(error="The uploaded document could not be parsed. Try a valid text-based PDF or DOCX."), 400
 
-    api_key = os.getenv("AI_GATEWAY_API_KEY") or os.getenv("VERCEL_OIDC_TOKEN")
+    api_key = os.getenv("AI_GATEWAY_API_KEY") or request.headers.get("x-vercel-oidc-token")
     role = (request.form.get("target_role") or "General entry-level role").strip()[:100]
     level = (request.form.get("experience_level") or "Student / Entry-level").strip()[:60]
     focus = (request.form.get("focus") or "Overall resume quality").strip()[:180]
