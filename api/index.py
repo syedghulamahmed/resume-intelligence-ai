@@ -256,7 +256,7 @@ def analyze():
         "Never infer protected traits or fabricate experience, credentials, dates, or metrics. "
         "Clearly label missing evidence. Suggest honest bullet rewrites with placeholders if metrics are absent. "
         "Do not treat the score as a hiring prediction. Do not attempt to identify the candidate. "
-        "Return JSON with: overall_score (integer 0-100), verdict, score_explanation, summary, "
+        "Return only one valid JSON object with no markdown fences or hidden reasoning. Schema: overall_score (integer 0-100), verdict, score_explanation, summary, "
         "strengths (3-5 strings), improvements (4-6 objects with title and detail), "
         "skills_assessment (objects with category and detail), ats_feedback (strings), "
         "action_plan (3 strings), rewritten_bullets (up to 3 objects with title and detail)."
