@@ -70,9 +70,7 @@ def home():
 
 @app.get("/api/health")
 def health():
-    return jsonify(status="ok", service="resume-intelligence-ai")
-
-
+    return jsonify(status="ok", service="resume-intelligence-ai", ai_configured=bool(os.getenv("OPENAI_API_KEY")))
 @app.post("/api/analyze")
 def analyze():
     if "resume" not in request.files:
