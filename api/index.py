@@ -78,28 +78,34 @@ def anonymize_resume(text):
     return "\n".join(cleaned).strip()[:MAX_EXTRACTED_CHARS]
 
 
-def call_vireonix(messages, timeout=35):
-    payload = {
-        "model": "auto",
-        "temperature": 0.2,
-        "max_tokens": 2600,
-        "response_format": {"type": "json_object"},
-        "messages": messages,
-    }
-    upstream = urllib.request.Request(
-        "https://vireonix.ai/v1/chat/completions",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    with urllib.request.urlopen(upstream, timeout=timeout) as response:
-        result = json.loads(response.read().decode("utf-8"))
-    content = result.get("choices", [{}])[0].get("message", {}).get("content")
-    if not isinstance(content, str) or not content.strip():
-        raise ValueError("Empty AI response")
-    fence = chr(96) * 3
-    content = content.strip().replace(fence + "json", "").replace(fence, "").strip()
-    return json.loads(content)
+def call_blockrun(messages, timeout=28):
+    """Use BlockRun's free model pool; fail over once to a second listed free model."""
+    last_error = None
+    for model in ("nvidia/nemotron-3.5-bolt", "poolside/laguna-xs-2.1"):
+        payload = {
+            "model": model,
+            "temperature": 0.2,
+            "max_tokens": 3200,
+            "response_format": {"type": "json_object"},
+            "messages": messages,
+        }
+        upstream = urllib.request.Request(
+            "https://blockrun.ai/api/v1/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(upstream, timeout=timeout) as response:
+                result = json.loads(response.read().decode("utf-8"))
+            content = result.get("choices", [{}])[0].get("message", {}).get("content")
+            if not isinstance(content, str) or not content.strip():
+                raise ValueError("Empty AI response")
+            cleaned = content.strip().replace(chr(96) * 3 + "json", "").replace(chr(96) * 3, "").strip()
+            return json.loads(cleaned)
+        except Exception as exc:
+            last_error = exc
+    raise RuntimeError("BlockRun inference failed") from last_error
 
 
 SCHEMA = {
@@ -224,7 +230,7 @@ def home():
 
 @app.get("/api/health")
 def health():
-    return jsonify(status="ok", service="resume-intelligence-ai", ai_configured=True, ai_provider="vireonix", pii_redaction=True)
+    return jsonify(status="ok", service="resume-intelligence-ai", ai_configured=True, ai_provider="blockrun", pii_redaction=True)
 
 
 @app.post("/api/analyze")
@@ -263,7 +269,7 @@ def analyze():
     )
 
     try:
-        analysis = call_vireonix([
+        analysis = call_blockrun([
             {"role": "system", "content": system},
             {"role": "user", "content": prompt},
         ])
@@ -276,9 +282,9 @@ def analyze():
             raise ValueError("Incomplete resume review")
         if not isinstance(analysis["strengths"], list) or not isinstance(analysis["improvements"], list):
             raise ValueError("Invalid review sections")
-        return jsonify(analysis=analysis, source="vireonix", provider="Vireonix", anonymized=True)
+        return jsonify(analysis=analysis, source="blockrun", provider="BlockRun", anonymized=True)
     except Exception as exc:
-        app.logger.warning("Vireonix resume analysis failed (%s); using transparent baseline review.", type(exc).__name__)
+        app.logger.warning("BlockRun resume analysis failed (%s); using transparent baseline review.", type(exc).__name__)
         return jsonify(
             analysis=build_baseline_review(resume, role, level, focus),
             source="built-in",
