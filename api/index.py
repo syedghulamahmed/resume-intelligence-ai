@@ -280,8 +280,41 @@ def analyze():
             raise ValueError("Invalid score returned by model")
         if any(key not in analysis for key in required):
             raise ValueError("Incomplete resume review")
-        if not isinstance(analysis["strengths"], list) or not isinstance(analysis["improvements"], list):
-            raise ValueError("Invalid review sections")
+        list_limits = {
+            "strengths": 5,
+            "improvements": 6,
+            "skills_assessment": 8,
+            "ats_feedback": 8,
+            "action_plan": 5,
+            "rewritten_bullets": 3,
+        }
+        string_lists = {"strengths", "ats_feedback", "action_plan"}
+        object_lists = {"improvements", "skills_assessment", "rewritten_bullets"}
+        for key, maximum in list_limits.items():
+            items = analysis.get(key)
+            if not isinstance(items, list):
+                raise ValueError(f"Invalid {key} section")
+            if key in string_lists:
+                analysis[key] = [
+                    item.strip()[:400]
+                    for item in items
+                    if isinstance(item, str) and item.strip()
+                ][:maximum]
+            elif key in object_lists:
+                valid_items = []
+                for item in items:
+                    if not isinstance(item, dict):
+                        continue
+                    if key == "skills_assessment":
+                        required_text = ("category", "detail")
+                    else:
+                        required_text = ("title", "detail")
+                    if all(isinstance(item.get(field), str) and item[field].strip() for field in required_text):
+                        valid_items.append({
+                            field: item[field].strip()[:500]
+                            for field in required_text
+                        })
+                analysis[key] = valid_items[:maximum]
         return jsonify(analysis=analysis, source="blockrun", provider="BlockRun", anonymized=True)
     except Exception as exc:
         app.logger.warning("BlockRun resume analysis failed (%s); using transparent baseline review.", type(exc).__name__)
