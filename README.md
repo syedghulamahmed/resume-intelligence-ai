@@ -1,5 +1,10 @@
 # Resume Intelligence AI
 
+## Live demo
+
+[Open the deployed application](https://resume-intelligence-ai-eta.vercel.app)
+
+
 A resume-review application for PDF and DOCX files. It evaluates a resume against a target role and provides evidence-based strengths, prioritized improvements, skills assessment, ATS-structure feedback, and suggested bullet rewrites.
 
 ## Features
