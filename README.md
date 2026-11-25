@@ -29,7 +29,7 @@ source .venv/bin/activate
 pip install -r requirements.txt -r requirements-dev.txt
 python api/index.py
 ```
-Open http://127.0.0.1:5000.\n\nRun the API tests with `pytest -q`.
+Open http://127.0.0.1:5000.\n\nRun the API tests with `python -m pytest -q`.
 
 No provider API key is required.
 
